@@ -11,7 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Unzip project
-        run: if [ -f project.zip ]; then unzip -o project.zip -d .; fi
+        run: |
+          for z in *.zip; do [ -f "$z" ] && unzip -o "$z" -d .; done
+          ls -la
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -21,8 +23,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.9
-      - run: gradle assembleDebug --no-daemon
-      - run: cp app/build/outputs/apk/debug/app-debug.apk najm-tv.apk
+      - name: Build
+        run: |
+          F=$(find . -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          if [ -z "$F" ]; then echo "المشروع غير موجود: ارفع project.zip"; exit 1; fi
+          cd "$(dirname "$F")"
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/najm-tv.apk"
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
